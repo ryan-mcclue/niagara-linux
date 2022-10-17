@@ -3,10 +3,12 @@
 // Intel HD 620?
 // ignore error handling, synchronisation
 
-#include <GLFW/glfw3.h>
-
 #include <stdio.h>
 #include <stdarg.h>
+
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
+
 
 #define INTERNAL static
 
@@ -30,30 +32,47 @@ glfw_error_callback(int error, const char *description)
 int
 main(int argc, char *argv[])
 {
-  // TODO(Ryan): dpkg -L vulkan-sdk not giving header files?
-  printf("hello, niagara!\n");
+  VkInstance instance = 0;
 
+  // vulkan API uses structs with type field
+  // TODO: should verify that supports version 1.1
+  VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
+  app_info.apiVersion = VK_VERSION_1_1;
+
+  VkInstanceCreateInfo create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+  create_info.pApplicationInfo = &app_info;
+
+  vkCreateInstance(&create_info, 0, &instance);
+
+  // most GPU specs will have extensions, e.g. RTX extensions
+  
   // instance is vulkan runtime/loader
   //
   // vulkan validation layers dlls that can be added to vulkan instance at runtime
+  // validation layers help us verify that the code we write is actually correct
+  // I guess similar to clang sanitisers?
+  // (DIFFERENT TO EXTENSIONS!)
   
   // to draw on screen: surface (tied to window) interfaces to swap chain (size of window)
+
+  // Distinction between physical device and logical device, e.g. SLI between 2 GPUs to 1 logical device
 
   glfwSetErrorCallback(glfw_error_callback);
   if (glfwInit() == GLFW_TRUE)
   {
-    // Distinction between physical device and logical device, e.g. SLI between 2 GPUs to 1 logical device
     GLFWwindow *window = glfwCreateWindow(640, 480, "window", NULL, NULL);
     if (window != NULL)
     {
       while (!glfwWindowShouldClose(window))
       {
-
+        glfwPollEvents();
       }
     }
 
     glfwTerminate();
   }
+
+  vkDestroyInstance(instance, 0);
 
   return 0;
 }

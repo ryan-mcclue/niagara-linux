@@ -7,6 +7,8 @@ add_executable(
  code/main.cpp
 )
 
+# find vulkan
+
 add_subdirectory(extern/glfw)
 target_include_directories(niagara PRIVATE extern/glfw/include)
 target_link_libraries(niagara PRIVATE glfw ${GLFW_LIBRARIES})
