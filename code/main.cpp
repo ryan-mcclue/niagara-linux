@@ -9,7 +9,6 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-
 #define INTERNAL static
 
 INTERNAL void
@@ -37,13 +36,33 @@ main(int argc, char *argv[])
   // vulkan API uses structs with type field
   // TODO: should verify that supports version 1.1
   VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-  app_info.apiVersion = VK_VERSION_1_1;
+  app_info.apiVersion = VK_API_VERSION_1_1;
 
   VkInstanceCreateInfo create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
   create_info.pApplicationInfo = &app_info;
 
-  vkCreateInstance(&create_info, 0, &instance);
+#if defined(DEBUG)
+  const char *debug_layers[] = {
+    "VK_LAYER_KHRONOS_validation",
+  };
 
+  create_info.ppEnabledLayerNames = debug_layers;
+  create_info.enabledLayerCount = sizeof(debug_layers) / sizeof(debug_layers[0]);
+#endif
+
+  const char *extensions[] = {
+    VK_KHR_SURFACE_EXTENSION_NAME,
+  };
+
+  create_info.ppEnabledExtensionNames = extensions;
+  create_info.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
+
+  VkResult result = vkCreateInstance(&create_info, NULL, &instance);
+  if (result != VK_SUCCESS)
+  {
+    FPRINTF(stderr, "Error: Vulkan API %d\n", result);
+  }
+  
   // most GPU specs will have extensions, e.g. RTX extensions
   
   // instance is vulkan runtime/loader
@@ -72,7 +91,7 @@ main(int argc, char *argv[])
     glfwTerminate();
   }
 
-  vkDestroyInstance(instance, 0);
+  vkDestroyInstance(instance, NULL);
 
   return 0;
 }

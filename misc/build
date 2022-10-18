@@ -9,7 +9,7 @@ mkdir -p build
 
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) >/dev/null
 
-want_to_run=0
+want_to_run=1
 if [ $want_to_run -eq 1 ]; then
   mkdir -p run
   pushd run >/dev/null 
