@@ -65,6 +65,7 @@ main(int argc, char *argv[])
   create_info.enabledLayerCount = sizeof(debug_layers) / sizeof(debug_layers[0]);
 #endif
 
+  // KHR (khronos extensions) are as good as part of Vulkan; ratified in 1.1
   const char *extensions[] = {
     VK_KHR_SURFACE_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
@@ -116,9 +117,15 @@ main(int argc, char *argv[])
   VkDeviceCreateInfo device_create_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
   device_create_info.queueCreateInfoCount = 1;
   device_create_info.pQueueCreateInfos = &queue_info;
+
+  const char *device_extensions[] = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  };
+  device_create_info.ppEnabledExtensionNames = device_extensions;
+  device_create_info.enabledExtensionCount = ARRAY_COUNT(device_extensions);
+
   VkDevice logical_device = 0;
   VKX(vkCreateDevice(physical_device, &device_create_info, NULL, &logical_device));
-
 
   // the exception to the mostly cross-platform vulkan is surface creation extension
   
@@ -152,7 +159,26 @@ main(int argc, char *argv[])
       // Here we would support say, MoltenVK, nintendo switch, etc.
 #error "Unsupported Platform"
 #endif
-     
+      int window_width = 0, window_height = 0;
+      glfwGetWindowSize(window, &window_width, &window_height);
+
+      // Will have to recreate swap chain when window size changes
+      VkSwapchainCreateInfoKHR swap_chain_create_info = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+      swap_chain_create_info.surface = surface;
+      swap_chain_create_info.minImageCount = 2; // double-buffering
+      swap_chain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM; // TODO: some devices only support BGRA so detect what is supported dynamically
+      swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; 
+      swap_chain_create_info.imageExtent.width = window_width;
+      swap_chain_create_info.imageExtent.height = window_height;
+      swap_chain_create_info.imageExtent.height = window_height;
+      swap_chain_create_info.imageArrayLayers = 1; // we could make image a texture array ...
+      swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // we are going to render to swap chain image. we could copy things to swap chain image
+      swap_chain_create_info.queueFamilyIndexCount = ;
+
+
+
+      VkSwapchainKHR swapchain = 0;
+      VKX(vkCreateSwapchainKHR(logical_device, &swap_chain_create_info, NULL, &swapchain));
 
       while (!glfwWindowShouldClose(window))
       {
