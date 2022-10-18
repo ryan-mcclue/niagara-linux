@@ -8,6 +8,9 @@
 #include <stdlib.h>
 
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_X11 1
+#include <GLFW/glfw3native.h>
+
 #include <vulkan/vulkan.h>
 
 #define INTERNAL static
@@ -20,7 +23,7 @@ typedef uint32_t u32;
 #define VKX(call) \
   do { \
     VkResult result = call; \
-    (result != VK_SUCCESS) ? FPRINTF(stderr, "Error: Vulkan API %d\n", result), exit(1) : (void)0; \
+    (result != VK_SUCCESS) ? FPRINTF(stderr, "(Vulkan) Error: API %d\n", result), exit(1) : (void)0; \
   } while (0);
 
 INTERNAL void
@@ -64,18 +67,60 @@ main(int argc, char *argv[])
 
   const char *extensions[] = {
     VK_KHR_SURFACE_EXTENSION_NAME,
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+    VK_KHR_XLIB_SURFACE_EXTENSION_NAME, 
+#endif
   };
 
   create_info.ppEnabledExtensionNames = extensions;
   create_info.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
 
   VKX(vkCreateInstance(&create_info, NULL, &instance));
+  // From this point on, talking to graphics drivers and validation layers
 
   VkPhysicalDevice physical_devices[16] = {};
   u32 physical_device_count = ARRAY_COUNT(physical_devices);
   VKX(vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices));
 
-  //vkGetPhysicalDeviceProperty
+  VkPhysicalDevice physical_device = 0;
+  if (physical_device_count > 0)
+  {
+    physical_device = physical_devices[0];
+    for (u32 i = 0; i < physical_device_count; ++i)
+    {
+      VkPhysicalDeviceProperties props = {};
+      vkGetPhysicalDeviceProperties(physical_devices[i], &props);
+      if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      {
+        physical_device = physical_devices[i];
+        break;
+      }
+    }
+  }
+  else
+  {
+    FPRINTF(stderr, "(Vulkan) Error: No physical devices found\n");
+  }
+  
+  // vkGetPhysicalDeviceQueueFamilyProperties(physical_device, );
+
+  // devices can have multiple queues. each queue can be used to submit particular commands 
+  // e.g. a queue for compute commands, a queue for presentation etc.
+  float queue_properties = 1.0f;
+
+  VkDeviceQueueCreateInfo queue_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+  queue_info.queueFamilyIndex = 0; // TODO: this needs to be computed from queue properties
+  queue_info.queueCount = 1;
+  queue_info.pQueuePriorities = &queue_properties;
+
+  VkDeviceCreateInfo device_create_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+  device_create_info.queueCreateInfoCount = 1;
+  device_create_info.pQueueCreateInfos = &queue_info;
+  VkDevice logical_device = 0;
+  VKX(vkCreateDevice(physical_device, &device_create_info, NULL, &logical_device));
+
+
+  // the exception to the mostly cross-platform vulkan is surface creation extension
   
   // most GPU specs will have extensions, e.g. RTX extensions
   
@@ -86,7 +131,7 @@ main(int argc, char *argv[])
   // I guess similar to clang sanitisers?
   // (DIFFERENT TO EXTENSIONS!)
   
-  // to draw on screen: surface (tied to window) interfaces to swap chain (size of window)
+  // to draw on screen: surface (tied to window) manages swap chain (size of window)
 
   // Distinction between physical device and logical device, e.g. SLI between 2 GPUs to 1 logical device
 
@@ -96,6 +141,19 @@ main(int argc, char *argv[])
     GLFWwindow *window = glfwCreateWindow(640, 480, "window", NULL, NULL);
     if (window != NULL)
     {
+      VkSurfaceKHR surface = 0;
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+      VkXlibSurfaceCreateInfoKHR surface_create_info = { VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR };
+      surface_create_info.dpy = glfwGetX11Display();
+      surface_create_info.window = glfwGetX11Window(window);
+
+      VKX(vkCreateXlibSurfaceKHR(instance, &surface_create_info, NULL, &surface));
+#else
+      // Here we would support say, MoltenVK, nintendo switch, etc.
+#error "Unsupported Platform"
+#endif
+     
+
       while (!glfwWindowShouldClose(window))
       {
         glfwPollEvents();

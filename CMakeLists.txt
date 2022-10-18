@@ -7,7 +7,7 @@ add_executable(
  code/main.cpp
 )
 
-target_compile_definitions(niagara PRIVATE DEBUG=1)
+target_compile_definitions(niagara PRIVATE DEBUG=1 VK_USE_PLATFORM_XLIB_KHR=1)
 
 find_package(Vulkan REQUIRED)
 target_link_libraries(niagara PRIVATE ${Vulkan_LIBRARIES})
