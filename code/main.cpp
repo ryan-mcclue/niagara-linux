@@ -5,11 +5,23 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
 #define INTERNAL static
+
+typedef uint32_t u32;
+
+#define ARRAY_COUNT(arr) \
+  (sizeof(arr) / sizeof(arr[0]))
+
+#define VKX(call) \
+  do { \
+    VkResult result = call; \
+    (result != VK_SUCCESS) ? FPRINTF(stderr, "Error: Vulkan API %d\n", result), exit(1) : (void)0; \
+  } while (0);
 
 INTERNAL void
 FPRINTF(FILE *stream, const char *format, ...)
@@ -57,11 +69,13 @@ main(int argc, char *argv[])
   create_info.ppEnabledExtensionNames = extensions;
   create_info.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
 
-  VkResult result = vkCreateInstance(&create_info, NULL, &instance);
-  if (result != VK_SUCCESS)
-  {
-    FPRINTF(stderr, "Error: Vulkan API %d\n", result);
-  }
+  VKX(vkCreateInstance(&create_info, NULL, &instance));
+
+  VkPhysicalDevice physical_devices[16] = {};
+  u32 physical_device_count = ARRAY_COUNT(physical_devices);
+  VKX(vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices));
+
+  //vkGetPhysicalDeviceProperty
   
   // most GPU specs will have extensions, e.g. RTX extensions
   

@@ -4,13 +4,14 @@ set -e
 
 mkdir -p build
 
+want_to_run=$1
+
 # IMPORTANT(Ryan): Initially populate CMakeCache.txt
 # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -Bbuild
 
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) >/dev/null
 
-want_to_run=1
-if [ $want_to_run -eq 1 ]; then
+if [ ! -z $want_to_run ]; then
   mkdir -p run
   pushd run >/dev/null 
 
